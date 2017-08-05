@@ -1,0 +1,82 @@
+---
+title: "02-anonymize_key_columns"
+output: html_notebook
+---
+
+
+
+```{r}
+# load the library digest. install if necessary
+require(digest)
+
+# creating a function to anonymize 
+# param x     the column/variable to anonymize
+# param algo  the hashing algorithm. options: crc32, sha1, sha256, sha512, etc.
+anonymize <- function(x, algo = "crc32") {
+    hashes <- vapply(unique(x), function(object)
+                digest(object, algo = algo, serialize = FALSE), 
+                FUN.VALUE = "", USE.NAMES = TRUE)
+    
+    unname(hashes[x])
+}
+
+# read the well data from an EXcel file
+well_data <- read.csv("oilfield_25w_dataset-01.csv", stringsAsFactors = FALSE)
+well_data
+
+# using the `apply` function to anonymize the `Wellname` column
+well_data$well_id <- apply(well_data["Wellname"], 1, anonymize)  # 1: rows; 2: columns
+well_data
+
+```
+
+
+
+```{r}
+# number of columns in table
+ncol(well_data)
+
+# names of the columns
+names(well_data)
+```
+
+
+```{r rows.print=25}
+# move well_id to be the first column
+well_data <- well_data[, c(17, 1:16)]
+well_data
+```
+
+
+```{r rows.print=25}
+# select columns to anonymize
+to_mask <- c("Company", "Analyst", "Field", "Location", "Platform")
+
+# anonymize and replace columns in table
+well_data[to_mask] <- apply(well_data[to_mask], 2, anonymize)
+well_data
+```
+
+
+
+
+```{r rows.print=25}
+# remove the original column `Wellname`
+well_data$Wellname <- NULL  # or      well_data <- well_data[, -c(2)]
+well_data
+```
+
+
+```{r}
+# write the anonymized well data to a CSV file
+write.csv(well_data, file = "anom-well-data.csv")
+```
+
+
+```{r}
+anom_well_data <- read.csv(file = "anom-well-data.csv")
+anom_well_data
+```
+
+
+

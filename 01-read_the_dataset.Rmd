@@ -1,0 +1,107 @@
+---
+title: "01-read_the_dataset"
+output: html_notebook
+---
+
+
+
+```{r  rows.print=25}
+# read the well data from a CSV file
+well_data <- read.csv("oilfield_25w_dataset-01.csv", stringsAsFactors = FALSE)
+well_data
+```
+
+
+
+```{r}
+well_data
+```
+
+
+```{r}
+# start by reading one well
+well_name_01 <- well_data[1, "Wellname"]
+well_name_01
+```
+
+```{r}
+require(digest)
+
+digest(well_name_01, algo = "crc32", serialize = FALSE)
+```
+
+
+```{r}
+# read a second well
+well_name_02 <- well_data[2, "Wellname"]   # get the well name from the 2nd row
+well_name_02   # show the well
+digest(well_name_02, algo = "crc32", serialize = FALSE)  # anonymize the well name
+```
+
+```{r}
+# let's  do the last well in the table: No. 25
+well_name_25 <- well_data[25, "Wellname"]   # get the well name from the 2nd row
+well_name_25   # show the well
+digest(well_name_25, algo = "crc32", serialize = FALSE)  # anonymize the well name
+```
+
+We can continue doing this all day long but becomes tedious.
+
+```{r}
+require(digest)
+# creating a function to anonymize 
+# param x     the column/variable to anonymize
+# param algo  the hashing algorithm. options: crc32, sha1, sha256, sha512, etc.
+anonymize <- function(x, algo = "crc32") {
+    hashes <- vapply(unique(x), function(object)
+                digest(object, algo = algo, serialize = FALSE), 
+                FUN.VALUE = "", USE.NAMES = TRUE)
+    
+    unname(hashes[x])
+}
+```
+
+**Notes: **
+* serializing requires that the variables or columns are characters not factors, thay why we used the option `stringsAsFactors = FALSE` when we imported the data above.
+* In this example we are using the hashing algorithm `crc32` but we could use another one stronger such as `sha1`.
+* Be sure that you are using the option `serialize = FALSE` in digest otherwise your anonymized names will change from one run to the other. We will see the difference later when we join to the well test table.
+
+We could add the new ID column next to the original:
+
+```{r}
+# using the `apply` function to anonymize the `Wellname` column
+well_data$well_id <- apply(well_data["Wellname"], 1, anonymize)  # 1: rows; 2: columns
+
+# select only columns `Wellname` and `well_id`
+well_data[c("Wellname", "well_id")]
+```
+
+
+
+```{r}
+# using the function sapply
+well_data$well_id <- as.vector(sapply(well_data["Wellname"], anonymize))
+well_data
+```
+
+```{r}
+# using the function apply
+well_data$well_id <- apply(well_data["Wellname"], 1, anonymize)
+well_data
+```
+
+```{r}
+ncol(well_data)    # numbber of columns
+names(well_data)   # names of the columns
+```
+
+
+```{r}
+# move the well_id to the 1st column
+well_data <- well_data[, c(17, 1:16)]
+well_data
+```
+
+
+
+
